@@ -70,6 +70,44 @@ describe('Validation', function() {
         });
     });
 
+    describe('cross-field/nested validation', function() {
+        var passwordIsConfirmed;
+
+        before(function() {
+            var isString = Validation('isString', {
+                error: 'Not a string, dudette.',
+                check: _.isString
+            });
+
+            passwordIsConfirmed = Validation('', {
+                error: 'Password and confirmation mismatch.',
+                check: value => value.password === value.confirm_password,
+                where: {
+                    password: isString,
+                    confirm_password: isString
+                }
+            });
+        });
+
+        it('should validate children', function() {
+            expect(passwordIsConfirmed({password: null, confirm_password: 'hi'})).to.eql({password: 'Not a string, dudette.'});
+            expect(passwordIsConfirmed({password: 'hi', confirm_password: null})).to.eql({confirm_password: 'Not a string, dudette.'});
+            expect(passwordIsConfirmed({password: 'hi', confirm_password: 'HI'})).to.be('Password and confirmation mismatch.');
+        });
+
+        describe('withError()', function() {
+            it('should override error message for combined validation', function() {
+                var userPasswordIsConfirmed = passwordIsConfirmed.withError(
+                    'User password confirmation mismatch.'
+                );
+
+                expect(userPasswordIsConfirmed({password: null, confirm_password: 'hi'})).to.eql({password: 'Not a string, dudette.'});
+                expect(userPasswordIsConfirmed({password: 'hi', confirm_password: null})).to.eql({confirm_password: 'Not a string, dudette.'});
+                expect(userPasswordIsConfirmed({password: 'hi', confirm_password: 'HI'})).to.be('User password confirmation mismatch.');
+            });
+        });
+    });
+
     xit('should do everything else', function() {
         var isShort = Validation('isShort', {
             check: value => value.length < 4,
